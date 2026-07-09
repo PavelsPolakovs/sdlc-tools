@@ -1,17 +1,24 @@
 import { z } from "zod";
 import { append } from "../state/audit-log.js";
-import { setCurrent, markCompleted } from "../state/session-store.js";
+import { setCurrent, markCompleted, clearCurrent } from "../state/session-store.js";
 
 export const reportInputShape = {
-  key: z.string(),
-  status: z.enum(["Resolved", "Awaiting Deployment"]),
-  branch: z.string(),
-  commitSha: z.string(),
-  verdict: z.enum(["pass", "changes_requested"]),
-  mrWebUrl: z.string().url(),
-  mrIid: z.number().int(),
-  filesTouched: z.array(z.string()),
-  blockers: z.array(z.string()).default([]),
+  key: z.string().describe("Jira issue key, e.g. UNCS-305"),
+  status: z
+    .enum(["Resolved", "Awaiting Deployment"])
+    .describe("Jira status to report the issue as"),
+  branch: z.string().describe("Git branch the change was shipped from"),
+  commitSha: z.string().describe("Commit SHA that was shipped"),
+  verdict: z
+    .enum(["pass", "changes_requested"])
+    .describe("Outcome of code review for the merge request"),
+  mrWebUrl: z.string().url().describe("Web URL of the merge request"),
+  mrIid: z.number().int().describe("Internal ID (iid) of the merge request"),
+  filesTouched: z.array(z.string()).describe("Paths of files changed by the commit"),
+  blockers: z
+    .array(z.string())
+    .default([])
+    .describe("Any unresolved blockers preventing deployment; empty if none"),
 };
 
 export const reportInputSchema = z.object(reportInputShape);
@@ -35,7 +42,14 @@ export function formatReport(input: ReportInput): string {
 export function runReport(rawInput: unknown): { content: [{ type: "text"; text: string }] } {
   setCurrent("report");
 
-  const input = reportInputSchema.parse(rawInput);
+  let input: ReportInput;
+  try {
+    input = reportInputSchema.parse(rawInput);
+  } catch (error) {
+    clearCurrent();
+    throw error;
+  }
+
   const text = formatReport(input);
 
   // Fail-closed: the audit event and completion marker are only recorded

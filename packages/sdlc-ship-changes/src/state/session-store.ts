@@ -31,6 +31,10 @@ export function setCurrent(step: StepName): void {
   state.currentStep = step;
 }
 
+export function clearCurrent(): void {
+  state.currentStep = null;
+}
+
 export function markCompleted(step: StepName): void {
   if (!state.completedSteps.includes(step)) {
     state.completedSteps.push(step);
