@@ -1,8 +1,18 @@
 import { z } from "zod";
 import { append } from "../state/audit-log.js";
-import { setCurrent, markCompleted, clearCurrent } from "../state/session-store/index.js";
+import {
+  setCurrent,
+  markCompleted,
+  clearCurrent,
+  getSessionById,
+  updateSession,
+} from "../state/session-store/index.js";
 
 export const reportInputShape = {
+  sessionId: z
+    .string()
+    .uuid()
+    .describe("sessionId returned by start_session; identifies which on-disk session this report closes out"),
   key: z.string().describe("Jira issue key, e.g. UNCS-305"),
   status: z
     .enum(["Resolved", "Awaiting Deployment"])
@@ -46,9 +56,14 @@ export function formatReport(input: ReportInput): string {
 /**
  * Финальный, обязательный шаг пайплайна ship-changes. Единственный код-путь,
  * производящий текст отчёта: fail-closed паттерн — audit-событие
- * `report_submitted` и маркер завершения шага `report` записываются только
- * здесь, после того как `formatReport` реально сформировал текст, поэтому
- * модель не может "отчитаться" самостоятельно, в обход этого инструмента.
+ * `report_submitted`, маркер завершения шага `report` и перевод дисковой
+ * сессии в статус `completed` записываются только здесь, после того как
+ * `formatReport` реально сформировал текст, поэтому модель не может
+ * "отчитаться" самостоятельно, в обход этого инструмента.
+ *
+ * `setCurrent`/`markCompleted`/`clearCurrent` (legacy in-memory трекер) пока
+ * оставлены наряду с дисковым `updateSession` — это переходный период до тех
+ * пор, пока остальные инструменты пайплайна тоже не мигрируют на `sessionId`.
  */
 export function runReport(rawInput: unknown): { content: [{ type: "text"; text: string }] } {
   setCurrent("report");
@@ -65,6 +80,22 @@ export function runReport(rawInput: unknown): { content: [{ type: "text"; text: 
 
   append("report_submitted", { key: input.key, status: input.status });
   markCompleted("report");
+
+  const session = getSessionById(input.sessionId);
+  if (!session) {
+    clearCurrent();
+    throw new Error(`session ${input.sessionId} not found`);
+  }
+  if (session.status !== "active") {
+    clearCurrent();
+    throw new Error(`session ${input.sessionId} is not active (status: ${session.status})`);
+  }
+  updateSession(input.sessionId, {
+    status: "completed",
+    currentStep: "report",
+    event: "report_submitted",
+    detail: { key: input.key, status: input.status },
+  });
 
   return { content: [{ type: "text", text }] };
 }

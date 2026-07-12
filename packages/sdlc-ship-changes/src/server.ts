@@ -29,10 +29,11 @@ server.registerTool(
   "ship_report",
   {
     description:
-      "Final, mandatory step of the ship-changes pipeline. Records a " +
-      "report_submitted audit event and returns the formatted final report. " +
-      "This is the only way to produce the final report — do not hand-write " +
-      "the report text yourself instead of calling this tool.",
+      "Final, mandatory step of the ship-changes pipeline. Requires the sessionId " +
+      "returned by start_session. Records a report_submitted audit event, marks that " +
+      "session completed, and returns the formatted final report. This is the only way " +
+      "to produce the final report — do not hand-write the report text yourself instead " +
+      "of calling this tool.",
     inputSchema: reportInputShape,
   },
   async (input) => runReport(input),

@@ -59,7 +59,10 @@ export function runStartSession(rawInput: unknown): { content: [{ type: "text"; 
   if (active) {
     return blocked(
       `an active session already exists (sessionId ${active.sessionId}, started ` +
-        `${new Date(active.timestamp).toISOString()}). Resolve or resume it before starting a new one.`,
+        `${new Date(active.timestamp).toISOString()}). Resolve or resume it before starting a new one. ` +
+        `If this session is stuck (e.g. the process crashed mid-pipeline), it can be manually recovered by ` +
+        `editing its status field to "abandoned" in ` +
+        `./tmp/sdlc-sessions/sdlc-${active.timestamp}/session.json — see session-store/README.md.`,
     );
   }
 

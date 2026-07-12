@@ -8,10 +8,11 @@ import path from "node:path";
 export const SESSIONS_ROOT = path.join(process.cwd(), "tmp", "sdlc-sessions");
 
 /**
- * Путь к `.gitignore` текущего проекта — читается guard-проверкой (`guard.ts`),
- * чтобы убедиться, что `SESSIONS_ROOT` не попадёт в `git status --porcelain`.
+ * Относительный (POSIX-стиль) путь к директории сессий — используется
+ * guard-проверкой (`guard.ts`) как аргумент для `git check-ignore`, который
+ * принимает пути в этом виде независимо от ОС.
  */
-export const GITIGNORE_PATH = path.join(process.cwd(), ".gitignore");
+export const SESSIONS_ROOT_RELATIVE = "tmp/sdlc-sessions";
 
 /**
  * Строит путь к директории конкретной сессии по её `timestamp`:
