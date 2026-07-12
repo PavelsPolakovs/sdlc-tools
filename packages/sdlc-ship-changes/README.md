@@ -1,16 +1,12 @@
 # sdlc-ship-changes
 
-An MCP server that exposes the ship-changes SDLC pipeline as a curated set of
-tools, instead of enforcing it via hooks that gate raw `Bash`/`Edit` calls —
-if a pipeline step isn't exposed as a tool, the model has no way to bypass it.
+MCP-сервер, который выставляет пайплайн SDLC ship-changes как курируемый набор инструментов — вместо того чтобы навязывать его через хуки, гейтящие сырые вызовы `Bash`/`Edit`. Если шаг пайплайна не выставлен как инструмент, у модели нет способа его обойти.
 
-## Status
+## Статус
 
-Proof of concept. Currently exposes exactly one tool, `ship_report`, which
-proves the install → build → register → call path end to end. The remaining
-pipeline tools (see Roadmap) are stubbed but not implemented.
+Proof of concept. Сейчас реализовано два инструмента: `start_session` (точка входа пайплайна) и `ship_report` (финальный шаг) — это доказывает путь install → build → register → call целиком. Остальные инструменты пайплайна (см. Roadmap) — заглушки, ещё не реализованы.
 
-## Install (from source)
+## Установка (из исходников)
 
 ```bash
 git clone <this-repo-url>
@@ -19,42 +15,39 @@ npm install
 npm run build
 ```
 
-This produces `dist/server.js`, an executable Node script.
+Собирает `dist/server.js` — исполняемый Node-скрипт.
 
-## Register with Claude Code
+## Регистрация в Claude Code
 
 ```bash
 claude mcp add sdlc-ship-changes -- node /absolute/path/to/dist/server.js
 ```
 
-Use the absolute path to `dist/server.js` on your machine.
+Используйте абсолютный путь к `dist/server.js` на вашей машине.
 
-## Verify
+## Проверка
 
-Inside a Claude Code session, run `/mcp` and confirm `sdlc-ship-changes` is
-listed as connected with one tool, `ship_report`.
+В сессии Claude Code выполните `/mcp` и убедитесь, что `sdlc-ship-changes` подключён и в списке есть инструменты `start_session` и `ship_report`.
 
-Then try a prompt like:
+Затем попробуйте промпт вроде:
 
 > Call ship_report for PROJ-123, status Resolved, branch
 > `feature/proj-123-fix`, commit `abc1234`, verdict pass, MR
 > https://gitlab.example.com/group/repo/-/merge_requests/42 with iid 42,
 > files touched `src/a.ts` and `src/b.ts`, no blockers.
 
-Claude should call `ship_report` and return a formatted report — it should
-not hand-write the report text itself.
+Claude должен вызвать `ship_report` и вернуть отформатированный отчёт — не должен писать текст отчёта вручную.
 
 ## Roadmap
 
-Remaining pipeline tools, to be implemented in later slices:
+Оставшиеся инструменты пайплайна, к реализации в следующих срезах:
 
-- `read_changes` — inspect the working tree diff
-- `create_jira_task` — create the Jira issue for the change
-- `transition_issue` — move the Jira issue through its workflow
-- `create_branch` — create the git branch for the change
-- `commit` — commit staged changes
-- `open_mr` — open the merge/pull request
-- `poll_ci` — poll CI status for the MR
+- `read_changes` — разбор диффа рабочего дерева
+- `create_jira_task` — создание Jira-задачи под изменение
+- `transition_issue` — перевод Jira-задачи по статусам workflow
+- `create_branch` — создание git-ветки под изменение
+- `commit` — коммит застейдженных изменений
+- `open_mr` — открытие merge/pull request
+- `poll_ci` — опрос статуса CI для MR
 
-Persistence for `audit-log` and `session-store` (currently in-memory) is
-expected to land alongside `read_changes`, the next tool after this slice.
+Дисковая персистентность сессии (`session.json` + `log.md` в `./tmp/sdlc-sessions/`) уже реализована в `src/state/session-store/` вместе с `start_session`. `audit-log.ts` пока остаётся in-memory — его перевод на диск ожидается по мере приземления следующих инструментов.

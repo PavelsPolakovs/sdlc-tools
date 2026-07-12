@@ -16,3 +16,6 @@ Thumbs.db
 # Node
 node_modules/
 dist/
+
+# sdlc-ship-changes session state
+tmp/sdlc-sessions/

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { append } from "../state/audit-log.js";
-import { setCurrent, markCompleted, clearCurrent } from "../state/session-store.js";
+import { setCurrent, markCompleted, clearCurrent } from "../state/session-store/index.js";
 
 export const reportInputShape = {
   key: z.string().describe("Jira issue key, e.g. UNCS-305"),
@@ -25,6 +25,10 @@ export const reportInputSchema = z.object(reportInputShape);
 
 export type ReportInput = z.infer<typeof reportInputSchema>;
 
+/**
+ * Форматирует входные данные отчёта в финальный текст, который увидит пользователь.
+ * Чистая функция — не пишет в audit-лог и не меняет состояние сессии.
+ */
 export function formatReport(input: ReportInput): string {
   const filesLine = input.filesTouched.join(", ");
   const blockersLine = input.blockers.length > 0 ? input.blockers.join("; ") : "none";
@@ -39,6 +43,13 @@ export function formatReport(input: ReportInput): string {
   ].join("\n");
 }
 
+/**
+ * Финальный, обязательный шаг пайплайна ship-changes. Единственный код-путь,
+ * производящий текст отчёта: fail-closed паттерн — audit-событие
+ * `report_submitted` и маркер завершения шага `report` записываются только
+ * здесь, после того как `formatReport` реально сформировал текст, поэтому
+ * модель не может "отчитаться" самостоятельно, в обход этого инструмента.
+ */
 export function runReport(rawInput: unknown): { content: [{ type: "text"; text: string }] } {
   setCurrent("report");
 
@@ -52,10 +63,6 @@ export function runReport(rawInput: unknown): { content: [{ type: "text"; text: 
 
   const text = formatReport(input);
 
-  // Fail-closed: the audit event and completion marker are only recorded
-  // here, after formatReport has actually produced the text — the model
-  // cannot self-report a "report_submitted" event without going through
-  // this code path.
   append("report_submitted", { key: input.key, status: input.status });
   markCompleted("report");
 
