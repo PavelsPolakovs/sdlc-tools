@@ -2,6 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { reportInputShape, runReport } from "./tools/report.js";
+import { readChangesInputShape, runReadChanges } from "./tools/read-changes.js";
 import { startSessionInputShape, runStartSession } from "./tools/start-session.js";
 
 const server = new McpServer({
@@ -22,6 +23,22 @@ server.registerTool(
     inputSchema: startSessionInputShape,
   },
   async (input) => runStartSession(input),
+);
+
+// Первый шаг после старта сессии — единственный способ структурировать
+// изменения рабочего дерева перед созданием Jira-задачи.
+server.registerTool(
+  "read_changes",
+  {
+    description:
+      "First step after start_session. Requires the sessionId returned by start_session. " +
+      "Runs a three-phase read of the working tree (git status/diff overview, per-file diff, " +
+      "extended context for high-signal files), writes the full snapshot to changes.json inside " +
+      "the session directory, and returns only a minimal completion confirmation — not the raw " +
+      "diffs or file list. Read changes.json directly if you need the actual file contents.",
+    inputSchema: readChangesInputShape,
+  },
+  async (input) => runReadChanges(input),
 );
 
 // Финальный шаг пайплайна — единственный способ получить текст итогового отчёта.

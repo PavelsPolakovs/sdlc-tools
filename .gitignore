@@ -17,5 +17,5 @@ Thumbs.db
 node_modules/
 dist/
 
-# sdlc-ship-changes session state
-tmp/sdlc-sessions/
+# Scratch/temp files (includes sdlc-ship-changes session state)
+tmp/
