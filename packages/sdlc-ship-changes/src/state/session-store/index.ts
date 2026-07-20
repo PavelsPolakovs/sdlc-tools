@@ -17,3 +17,4 @@ export { checkSessionsGuard } from "./guard.js";
 export { findActiveSession, getSessionById } from "./session-repository.js";
 export { createSession } from "./create-session.js";
 export { updateSession } from "./update-session.js";
+export { SESSIONS_ROOT, sessionDirFor } from "./paths.js";

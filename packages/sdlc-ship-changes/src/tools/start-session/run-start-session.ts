@@ -1,34 +1,6 @@
-import { execSync } from "node:child_process";
-import { z } from "zod";
-import { checkSessionsGuard, createSession, findActiveSession } from "../state/session-store/index.js";
-
-export const startSessionInputShape = {
-  hint: z
-    .string()
-    .optional()
-    .describe(
-      "Optional free-text hint describing the intended change, passed through from the " +
-        "user/skill invocation as-is and stored on the session so later pipeline steps " +
-        "(e.g. Jira task creation) can read it without it being re-supplied.",
-    ),
-};
-
-export const startSessionInputSchema = z.object(startSessionInputShape);
-
-export type StartSessionInput = z.infer<typeof startSessionInputSchema>;
-
-/**
- * Проверяет, есть ли незакоммиченные изменения в рабочем дереве текущего
- * проекта. Если изменений нет, пайплайну ship-changes нечего доставлять,
- * и сессию не имеет смысла начинать.
- */
-function hasPendingChanges(): boolean {
-  const output = execSync("git status --porcelain", {
-    cwd: process.cwd(),
-    encoding: "utf8",
-  });
-  return output.trim().length > 0;
-}
+import { checkSessionsGuard, createSession, findActiveSession } from "../../state/session-store/index.js";
+import { startSessionInputSchema } from "./input-schema.js";
+import { hasPendingChanges } from "./has-pending-changes.js";
 
 /**
  * Хелпер для единообразного формата ответа при блокировке любой из трёх

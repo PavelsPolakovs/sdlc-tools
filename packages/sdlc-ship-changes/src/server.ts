@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { reportInputShape, runReport } from "./tools/report.js";
-import { readChangesInputShape, runReadChanges } from "./tools/read-changes.js";
-import { startSessionInputShape, runStartSession } from "./tools/start-session.js";
+import { reportInputShape, runReport } from "./tools/report/index.js";
+import { readChangesInputShape, runReadChanges } from "./tools/read-changes/index.js";
+import { startSessionInputShape, runStartSession } from "./tools/start-session/index.js";
 
 const server = new McpServer({
   name: "sdlc-ship-changes",

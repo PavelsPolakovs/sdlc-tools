@@ -1,9 +1,17 @@
-// In-memory для этого bootstrap-среза; должен стать дисковым (например, JSONL
-// в project-local директории .sdlc/), как только приземлится больше инструментов
-// и история audit должна будет переживать рестарт процесса. `append` обязан
+// Кросс-сессионный audit-лог (в отличие от per-session `events[]` в
+// session-store, который персистит факты внутри одной сессии). Пишется
+// одновременно в память (для синхронного чтения через `all()` в рамках
+// текущего процесса) и построчно в JSONL на диск (`SESSIONS_ROOT/audit.jsonl`),
+// чтобы история переживала рестарт процесса MCP-сервера. `append` обязан
 // оставаться единственным путём записи в этот лог — ни один инструмент не должен
 // писать произвольные audit-события напрямую, поскольку лог — это факт-о-записи
 // того, что реально произошло, независимо от того, что утверждает модель.
+
+import { appendFileSync, mkdirSync } from "node:fs";
+import { join } from "node:path";
+import { SESSIONS_ROOT } from "./session-store/index.js";
+
+const AUDIT_LOG_PATH = join(SESSIONS_ROOT, "audit.jsonl");
 
 /** Одно audit-событие: что произошло, когда и с какими подробностями. */
 export interface AuditEvent {
@@ -20,11 +28,15 @@ const events: AuditEvent[] = [];
  * и только после того, как соответствующее действие уже реально выполнено.
  */
 export function append(event: string, detail?: Record<string, unknown>): void {
-  events.push({
+  const record: AuditEvent = {
     timestamp: new Date().toISOString(),
     event,
     detail,
-  });
+  };
+  events.push(record);
+
+  mkdirSync(SESSIONS_ROOT, { recursive: true });
+  appendFileSync(AUDIT_LOG_PATH, JSON.stringify(record) + "\n", "utf8");
 }
 
 /** Возвращает все записанные audit-события — для чтения/отладки. */

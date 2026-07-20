@@ -78,7 +78,7 @@ function readOverview() {
     null,
   );
 
-  const statusRaw = git(['status', '--porcelain=v2', '--branch']);
+  const statusRaw = git(['status', '--porcelain=v2', '--branch', '--untracked-files=all']);
   const numstatRaw = tryGit(['diff', '--numstat', 'HEAD'], '');
 
   return { branch, headSha, upstream, statusRaw, numstatRaw };
@@ -254,7 +254,7 @@ function findRegistrationPoints(file, diff) {
   for (const identifier of identifiers) {
     if (results.length >= EXTENDED_CONTEXT_MAX_MATCHES) break;
 
-    const matches = tryGit(['grep', '-n', '-F', '--', identifier], '');
+    const matches = tryGit(['grep', '-n', '-F', '--untracked', '--', identifier], '');
     if (!matches) continue;
 
     for (const line of matches.split('\n')) {
