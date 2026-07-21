@@ -45,7 +45,7 @@ npm run typecheck  # tsc -p tsconfig.json --noEmit
 
 Конфиг — `tsconfig.json` в корне: самостоятельный (без `extends`/project references — `tsc -p ... --noEmit` не обходит `references` без `--build`), с `include: ["packages/*/src/**/*.ts"]`, дублирует нужные `compilerOptions` из `packages/sdlc-ship-changes/tsconfig.json`. Из корня есть также шорткат `make typecheck`.
 
-Тест-раннер пока не настроен нигде в репозитории.
+Repo-wide тест-раннер не настроен — тесты запускаются только внутри пакета (см. ниже).
 
 Команды самого пакета (запускать из `packages/sdlc-ship-changes/`):
 
@@ -55,6 +55,7 @@ npm run build     # tsc -p tsconfig.json, затем chmod +x dist/server.js (po
 npm run typecheck # tsc -p tsconfig.json --noEmit (без сборки, только проверка типов)
 npm run dev        # запустить src/server.ts напрямую через tsx, без сборки
 npm start          # запустить собранный dist/server.js
+npm test           # node --import tsx --test src/**/*.test.ts (встроенный Node test runner, без vitest/jest)
 ```
 
 Из корня репозитория есть шорткат `make build`, вызывающий `npm run build` внутри пакета (см. корневой `Makefile`).
@@ -78,12 +79,14 @@ claude mcp add sdlc-ship-changes -- node /absolute/path/to/dist/server.js
 ### Шаги пайплайна (`StepName` в `src/state/session-store/types.ts`)
 
 ```
-start_session -> read_changes -> quality_precheck -> create_jira_task -> create_branch -> commit -> open_mr -> poll_ci -> report
+start_session -> read_changes -> quality_precheck -> report
 ```
+
+Промежуточные шаги полного пайплайна (`create_jira_task`, `create_branch`, `commit`, `open_mr`, `poll_ci`) пока не реализованы и намеренно убраны из `StepName`/`PIPELINE_ORDER` — держать их в типах и документации до реальной реализации только мешало бы. `quality_precheck` временно ведёт напрямую к `report`; вернуть их по мере реализации (см. roadmap в README пакета).
 
 `transition_issue` также существует как инструмент, но не входит в линейную последовательность `StepName` (Jira-переходы могут происходить в нескольких точках).
 
-Реализованы пока `start_session` (инструмент `start_session`), `read_changes` (инструмент `read_changes`), `quality_precheck` (инструмент `quality_precheck`, механический pre-check lint/prettier/typescript целевого репозитория по конфигам+package.json-скриптам) и `report` (инструмент `ship_report`). Остальные папки инструментов под `src/tools/` и оба файла под `src/clients/` (`gitlab-client.ts`, `jira-client.ts`) существуют, но пока пустые заглушки.
+Реализованы пока `start_session` (инструмент `start_session`), `read_changes` (инструмент `read_changes`), `quality_precheck` (инструмент `quality_precheck`, механический pre-check lint/prettier/typescript целевого репозитория по конфигам+package.json-скриптам) и `report` (инструмент `ship_report`). Единственная оставшаяся папка-заглушка под `src/tools/` — `transition-issue/`; `src/clients/jira-client.ts` — предполагаемая опора для него (`src/clients/gitlab-client.ts` удалён вместе со стаб-шагами, которые на него опирались).
 
 Неуспешный исход `quality_precheck` не заводит отдельный шаг пайплайна для исправления находок — вместо этого ответ инструмента указывает вызвать внешнего fix-errors агента/skill, уже существующего в проекте пользователя (не часть этого MCP-сервера), после чего сессию нужно вручную вернуть в `active` и вызвать `quality_precheck` повторно.
 
@@ -97,12 +100,11 @@ start_session -> read_changes -> quality_precheck -> create_jira_task -> create_
 
   Следуйте паттерну из `src/tools/report/`: `input-schema.ts` определяет `xInputShape` (сырой Zod shape, с `.describe()` на каждом поле — описания видны модели через input schema инструмента) и выводит `xInputSchema`/TS-тип через `z.object(...)`; `run-x.ts` экспортирует функцию `run*(rawInput: unknown)`, возвращающую `{ content: [{ type: "text", text }] }`. Инструменты-заглушки (ещё не реализованные) — папка с единственным `index.ts` (комментарий-заглушка) + `README.md`, описывающим планируемое поведение.
 
-- `src/state/session-store/` — хранилище состояния пайплайна, оформлено директорией с барелем (`index.ts`); подробности — в `src/state/session-store/README.md`. Содержит как legacy in-memory API (`setCurrent`/`clearCurrent`/`markCompleted`, используется `report/run-report.ts`), так и дисковый API сессий (`checkSessionsGuard`/`findActiveSession`/`getSessionById`/`createSession`/`updateSession`/`sessionDirFor`/`SESSIONS_ROOT`, используется `start-session/`, `read-changes/`, `quality-precheck/` и `report/`), персистящий `session.json` + `log.md` в `./tmp/sdlc-sessions/`. `ship_report` требует `sessionId` (возвращённый `start_session`) и переводит соответствующую дисковую сессию в статус `completed` через `updateSession`; `checkSessionsGuard` проверяет игнорирование пути через реальный `git check-ignore`, а не построчное сравнение с `.gitignore`.
+- `src/state/session-store/` — хранилище состояния пайплайна, оформлено директорией с барелем (`index.ts`); подробности — в `src/state/session-store/README.md`. Содержит как legacy in-memory трекер текущего шага (`setCurrent`/`clearCurrent`, только для отладки), так и дисковый API сессий (`checkSessionsGuard`/`findActiveSession`/`getSessionById`/`createSession`/`updateSession`/`assertPrecondition`/`PIPELINE_ORDER`/`sessionDirFor`/`SESSIONS_ROOT`, используется `start-session/`, `read-changes/`, `quality-precheck/` и `report/`), персистящий `session.json` + `log.md` в `./tmp/sdlc-sessions/`. `SessionRecord.completedSteps` персистится на диске и проверяется `assertPrecondition` перед стартом каждого шага (кроме `start_session`) — вызов вне порядка возвращается как `blocked: ...` текстом, а не бросает исключение. `ship_report` требует `sessionId` (возвращённый `start_session`) и переводит соответствующую дисковую сессию в статус `completed` через `updateSession`; `checkSessionsGuard` проверяет игнорирование пути через реальный `git check-ignore`, а не построчное сравнение с `.gitignore`.
 - `src/state/audit-log.ts` — кросс-сессионный append-only лог `AuditEvent`, пишется одновременно в память (для синхронного чтения через `all()` в рамках текущего процесса) и построчно в JSONL на диск (`SESSIONS_ROOT/audit.jsonl`), чтобы история переживала рестарт процесса. `append()` — единственный путь записи; ни один инструмент не должен конструировать `AuditEvent` напрямую или иначе писать в лог.
-- `src/clients/gitlab-client.ts`, `src/clients/jira-client.ts` — предполагаемые места для API-клиентов GitLab и Jira, на которые будут опираться ещё не реализованные инструменты.
+- `src/clients/jira-client.ts` — предполагаемое место для клиента Jira API, на который будет опираться `transition_issue`.
 
 ### Известное ближайшее направление (из roadmap в README пакета)
 
-- Оставшиеся инструменты к реализации, примерно в порядке пайплайна: `create_jira_task`, `transition_issue`, `create_branch`, `commit`, `open_mr`, `poll_ci`.
+- Оставшийся инструмент к реализации — `transition_issue`. Промежуточные шаги полного пайплайна (`create_jira_task`, `create_branch`, `commit`, `open_mr`, `poll_ci`) временно убраны из `StepName`/`PIPELINE_ORDER`/roadmap (см. выше) — вернуть их по мере реальной реализации.
 - Дисковая персистентность уже реализована и для сессии (`session.json`/`log.md` в `./tmp/sdlc-sessions/`), и для кросс-сессионного audit-лога (`SESSIONS_ROOT/audit.jsonl`) — оба пишутся синхронно при каждом вызове `append`/`updateSession`.
-- Файловый API сессий пока не проверяет порядок шагов (например, не отклоняет вызов инструмента, чьи precondition/предыдущие завершённые шаги не выполнены) — это отмечено как необходимое по мере роста набора инструментов за пределы текущего bootstrap-среза.

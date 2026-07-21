@@ -12,7 +12,9 @@ flowchart TD
     C --> D[audit-log.append report_submitted]
     D --> E{Сессия найдена и active?}
     E -- нет --> E1[clearCurrent + throw]
-    E -- да --> F["updateSession: status=completed,\ncurrentStep=report, event=report_submitted"]
+    E -- да --> E2{assertPrecondition:\nquality_precheck завершён?}
+    E2 -- нет --> E3["blocked: ... (не ошибка)"]
+    E2 -- да --> F["updateSession: status=completed,\ncurrentStep=report, event=report_submitted"]
     F --> G[Ответ модели: текст отчёта]
 ```
 
@@ -28,7 +30,8 @@ flowchart TD
 2. Вызывает `formatReport` для получения текста.
 3. Пишет audit-событие `report_submitted` (`audit-log.append`) — **после** того, как текст реально сформирован, а не до.
 4. Проверяет, что сессия существует и активна, иначе бросает ошибку.
-5. Переводит дисковую сессию в статус `completed` через `updateSession` (единый источник истины `session.json`).
+5. Проверяет `assertPrecondition(session, 'report')` — требует `quality_precheck` в `completedSteps` (сейчас его непосредственный предшественник по `PIPELINE_ORDER`, см. `session-store/README.md`); вызов вне порядка — штатный исход, ответ `blocked: ...` текстом, не исключение.
+6. Переводит дисковую сессию в статус `completed` через `updateSession` (единый источник истины `session.json`), включая `completeStep: "report"`.
 
 Побочные эффекты (audit-событие, маркер завершения шага `report`, статус `completed` сессии) записываются только внутри этой функции, после реально выполненной работы — это и есть fail-closed гарантия: модель не может подделать факт отправки отчёта, не вызвав этот инструмент.
 

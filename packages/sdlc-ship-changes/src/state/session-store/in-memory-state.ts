@@ -1,15 +1,13 @@
-// In-memory для этого bootstrap-среза; состояние сбрасывается при рестарте
-// процесса, что приемлемо, пока пайплайн выполняется в рамках одного процесса.
-// Как только набор инструментов вырастет за пределы этого среза, этот модуль
-// также должен будет проверять порядок шагов — например, отклонять вызов,
-// чьи precondition'ы (предыдущие завершённые шаги) не выполнены — вместо того
-// чтобы полагаться на то, что модель вызывает инструменты по порядку.
+// In-memory трекер текущего шага для этого bootstrap-среза; состояние
+// сбрасывается при рестарте процесса, что приемлемо — он служит только
+// отладке (видно, на каком шаге завис процесс), а не проверке порядка шагов.
+// Порядок шагов проверяется персистентно через `SessionRecord.completedSteps`
+// и `assertPrecondition` (см. `assert-precondition.ts`).
 
 import type { InMemorySessionState, StepName } from './types.js'
 
 const state: InMemorySessionState = {
   currentStep: null,
-  completedSteps: [],
 }
 
 /**
@@ -35,15 +33,4 @@ export function setCurrent(step: StepName): void {
  */
 export function clearCurrent(): void {
   state.currentStep = null
-}
-
-/**
- * Помечает шаг завершённым. Должна вызываться только после того, как реальная
- * работа инструмента уже выполнена успешно — это и есть fail-closed принцип:
- * маркер завершения нельзя получить, не проделав саму работу.
- */
-export function markCompleted(step: StepName): void {
-  if (!state.completedSteps.includes(step)) {
-    state.completedSteps.push(step)
-  }
 }

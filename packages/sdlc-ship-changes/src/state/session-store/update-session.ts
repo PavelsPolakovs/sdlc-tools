@@ -11,6 +11,14 @@ export interface SessionTransition {
   currentStep?: StepName | null
   event: string
   detail?: Record<string, unknown>
+  /**
+   * Шаг, который считается выполненным этим переходом — попадает в
+   * `SessionRecord.completedSteps` (с де-дупликацией), откуда его читает
+   * `assertPrecondition` следующего шага. Не связан с `status`: даже
+   * `quality_precheck_failed` помечает `quality_precheck` завершённым — сам
+   * шаг реально прогнан, а то, что пайплайн заблокирован, выражает `status`.
+   */
+  completeStep?: StepName
 }
 
 /**
@@ -38,6 +46,9 @@ export function updateSession(sessionId: string, transition: SessionTransition):
     event: transition.event,
     detail: transition.detail,
   })
+  if (transition.completeStep && !record.completedSteps.includes(transition.completeStep)) {
+    record.completedSteps.push(transition.completeStep)
+  }
   persistSession(record)
   return record
 }

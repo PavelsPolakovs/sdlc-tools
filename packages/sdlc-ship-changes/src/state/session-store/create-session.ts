@@ -18,6 +18,9 @@ export function createSession(hint?: string): SessionRecord {
     status: 'active',
     hint,
     events: [],
+    // Сама запись создаётся только здесь, значит `start_session` уже выполнен —
+    // без этого read_changes навсегда упирался бы в несуществующий precondition.
+    completedSteps: ['start_session'],
   }
   record.events.push({
     timestamp: record.timestamp,

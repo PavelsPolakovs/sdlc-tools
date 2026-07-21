@@ -2,10 +2,10 @@ import { join } from 'node:path'
 import { append } from '../../state/audit-log.js'
 import {
   setCurrent,
-  markCompleted,
   clearCurrent,
   getSessionById,
   updateSession,
+  assertPrecondition,
   sessionDirFor,
 } from '../../state/session-store/index.js'
 import { readChangesInputSchema, type ReadChangesInput } from './input-schema.js'
@@ -41,6 +41,12 @@ export function runReadChanges(rawInput: unknown): { content: [{ type: 'text'; t
     throw new Error(`session ${input.sessionId} is not active (status: ${session.status})`)
   }
 
+  const precondition = assertPrecondition(session, 'read_changes')
+  if (!precondition.ok) {
+    clearCurrent()
+    return { content: [{ type: 'text', text: `blocked: ${precondition.message}` }] }
+  }
+
   try {
     const changesJsonPath = join(sessionDirFor(session), 'changes.json')
     const result = runStructureScript(session.timestamp, changesJsonPath, input)
@@ -48,11 +54,11 @@ export function runReadChanges(rawInput: unknown): { content: [{ type: 'text'; t
     append(result.mode === 'append' ? 'changes_appended' : 'changes_structured', {
       summary: result.summary,
     })
-    markCompleted('read_changes')
     updateSession(input.sessionId, {
       currentStep: 'read_changes',
       event: result.mode === 'append' ? 'changes_appended' : 'changes_structured',
       detail: result.summary,
+      completeStep: 'read_changes',
     })
 
     return {
@@ -65,7 +71,7 @@ export function runReadChanges(rawInput: unknown): { content: [{ type: 'text'; t
             status: 'completed',
             changesPath: result.path,
             nextTool: 'quality_precheck',
-            note: 'Call quality_precheck next to run lint/prettier/typescript checks before create_jira_task.',
+            note: 'Call quality_precheck next to run lint/prettier/typescript checks.',
           }),
         },
       ],

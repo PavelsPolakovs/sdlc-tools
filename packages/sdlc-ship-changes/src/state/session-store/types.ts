@@ -8,26 +8,23 @@
  * `quality_precheck` при неуспехе не заводит отдельный шаг пайплайна для исправления
  * находок — это внешний агент/skill проекта, который вызывается по инструкции в ответе
  * `quality_precheck`, а сам шаг после исправления вызывается повторно.
+ *
+ * Промежуточные шаги полного пайплайна (`create_jira_task`, `create_branch`,
+ * `commit`, `open_mr`, `poll_ci`) намеренно убраны из этого типа и из
+ * `PIPELINE_ORDER` — они ещё не реализованы, и держать их здесь только мешало
+ * бы (типизировать несуществующий код). `quality_precheck` временно ведёт
+ * напрямую к `report`; вернуть их сюда по мере реальной реализации.
  */
-export type StepName =
-  | 'start_session'
-  | 'read_changes'
-  | 'quality_precheck'
-  | 'create_jira_task'
-  | 'create_branch'
-  | 'commit'
-  | 'open_mr'
-  | 'poll_ci'
-  | 'report'
+export type StepName = 'start_session' | 'read_changes' | 'quality_precheck' | 'report'
 
 /**
- * Состояние легаси in-memory API отслеживания шагов (см. `in-memory-state.ts`).
- * Существует отдельно от `SessionRecord`, потому что `report.ts` пока не мигрировал
- * на дисковые сессии и не принимает `sessionId`.
+ * Состояние легаси in-memory трекера текущего шага (см. `in-memory-state.ts`).
+ * Служит только отладке — показывает, на каком шаге завис процесс, если он
+ * упал посреди обработки инструмента; завершённые шаги персистятся на диске
+ * в `SessionRecord.completedSteps`, а не здесь.
  */
 export interface InMemorySessionState {
   currentStep: StepName | null
-  completedSteps: StepName[]
 }
 
 /**
@@ -64,6 +61,7 @@ export interface SessionRecord {
   status: SessionStatus
   hint?: string
   events: SessionEvent[]
+  completedSteps: StepName[]
 }
 
 /**

@@ -8,7 +8,9 @@
 flowchart TD
     A[Вход: sessionId, agent?, reason?] --> B{Сессия найдена и active?}
     B -- нет --> B1[Ошибка / clearCurrent]
-    B -- да --> C{changes.json для сессии\nуже существует?}
+    B -- да --> B2{assertPrecondition:\nstart_session завершён?}
+    B2 -- нет --> B3["blocked: ... (не ошибка)"]
+    B2 -- да --> C{changes.json для сессии\nуже существует?}
     C -- нет --> D["structure-changes.mjs sessionTimestamp\n(режим create)"]
     C -- да --> E["structure-changes.mjs sessionTimestamp --append\n--agent=... --reason=..."]
 
@@ -48,10 +50,12 @@ flowchart TD
 
 Tier назначается по комбинации признаков (`assignTier`): denylist (Tier 0, контент не читается), новый/расширенный по пути/размеру файл (Tier 2, полный контекст + Phase C), иначе Tier 1 (только сам diff).
 
+**Precondition**: сразу после проверки `status === 'active'` вызывается `assertPrecondition(session, 'read_changes')` (см. `session-store/README.md`). Предшественник — `start_session`, который засеивает своё завершение при создании сессии, так что на практике эта проверка всегда проходит; если её всё же не пройти, ответ — `blocked: ...` текстом, а не исключение.
+
 **Побочные эффекты** (только внутри `run-read-changes.ts`, после реально выполненной работы):
 
 - `audit-log.append("changes_structured" | "changes_appended", { summary })`.
-- `session-store.updateSession(sessionId, { currentStep: "read_changes", event: ... })` — переводит дисковую сессию, дописывает событие в `session.json`.
+- `session-store.updateSession(sessionId, { currentStep: "read_changes", event: ..., completeStep: "read_changes" })` — переводит дисковую сессию, дописывает событие в `session.json` и добавляет `read_changes` в `completedSteps`.
 - Блокирующий случай (нет изменений в рабочем дереве) переводит сессию в статус `blocked` и возвращает `blocked: ...` вместо ошибки.
 
 **Возврат модели** — только `{ sessionId, step, status, changesPath, nextTool, note }`. `nextTool` указывает на `quality_precheck` (см. `../quality-precheck/README.md`) — следующий реализованный узел пайплайна. Полное содержимое (`files[]`, диффы, `extendedContext`) остаётся на диске в `changesPath` и читается адресно, только когда это реально понадобится следующему шагу.

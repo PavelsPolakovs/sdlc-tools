@@ -1,10 +1,10 @@
 import { append } from '../../state/audit-log.js'
 import {
   setCurrent,
-  markCompleted,
   clearCurrent,
   getSessionById,
   updateSession,
+  assertPrecondition,
 } from '../../state/session-store/index.js'
 import { reportInputSchema, type ReportInput } from './input-schema.js'
 import { formatReport } from './format-report.js'
@@ -17,9 +17,10 @@ import { formatReport } from './format-report.js'
  * `formatReport` реально сформировал текст, поэтому модель не может
  * "отчитаться" самостоятельно, в обход этого инструмента.
  *
- * `setCurrent`/`markCompleted`/`clearCurrent` (legacy in-memory трекер) пока
- * оставлены наряду с дисковым `updateSession` — это переходный период до тех
- * пор, пока остальные инструменты пайплайна тоже не мигрируют на `sessionId`.
+ * Precondition (`assertPrecondition`) требует `quality_precheck` в
+ * `completedSteps` — сейчас это непосредственный предшественник `report` по
+ * `PIPELINE_ORDER` (промежуточные шаги полного пайплайна, `create_jira_task` и
+ * далее, пока не реализованы и в него не входят).
  */
 export function runReport(rawInput: unknown): { content: [{ type: 'text'; text: string }] } {
   setCurrent('report')
@@ -35,7 +36,6 @@ export function runReport(rawInput: unknown): { content: [{ type: 'text'; text: 
   const text = formatReport(input)
 
   append('report_submitted', { key: input.key, status: input.status })
-  markCompleted('report')
 
   const session = getSessionById(input.sessionId)
   if (!session) {
@@ -46,11 +46,19 @@ export function runReport(rawInput: unknown): { content: [{ type: 'text'; text: 
     clearCurrent()
     throw new Error(`session ${input.sessionId} is not active (status: ${session.status})`)
   }
+
+  const precondition = assertPrecondition(session, 'report')
+  if (!precondition.ok) {
+    clearCurrent()
+    return { content: [{ type: 'text', text: `blocked: ${precondition.message}` }] }
+  }
+
   updateSession(input.sessionId, {
     status: 'completed',
     currentStep: 'report',
     event: 'report_submitted',
     detail: { key: input.key, status: input.status },
+    completeStep: 'report',
   })
 
   return { content: [{ type: 'text', text }] }
