@@ -1,6 +1,6 @@
-import { randomUUID } from "node:crypto";
-import { persistSession } from "./persist-session.js";
-import type { SessionRecord } from "./types.js";
+import { randomUUID } from 'node:crypto'
+import { persistSession } from './persist-session.js'
+import type { SessionRecord } from './types.js'
 
 /**
  * Создаёт новую сессию пайплайна: генерирует `sessionId`/`timestamp`, записывает
@@ -14,17 +14,17 @@ export function createSession(hint?: string): SessionRecord {
   const record: SessionRecord = {
     sessionId: randomUUID(),
     timestamp: Date.now(),
-    currentStep: "start_session",
-    status: "active",
+    currentStep: 'start_session',
+    status: 'active',
     hint,
     events: [],
-  };
+  }
   record.events.push({
     timestamp: record.timestamp,
-    event: "session_started",
+    event: 'session_started',
     detail: hint ? { hint } : undefined,
-  });
-  record.currentStep = null;
-  persistSession(record);
-  return record;
+  })
+  record.currentStep = null
+  persistSession(record)
+  return record
 }

@@ -1,0 +1,21 @@
+{
+  "name": "sdlc-tools",
+  "private": true,
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@types/node": "^20.0.0",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "globals": "^15.13.0",
+    "prettier": "^3.9.5",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.65.0"
+  },
+  "scripts": {
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

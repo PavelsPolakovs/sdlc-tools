@@ -16,6 +16,6 @@ flowchart TD
 
 ## Подробное описание
 
-Пока не реализовано — файл содержит только комментарий-заглушку, инструмент не зарегистрирован в `server.ts`. Сейчас `read_changes` (см. `../read-changes/README.md`) возвращает `nextTool: null` именно потому, что этот инструмент ещё не существует.
+Пока не реализовано — файл содержит только комментарий-заглушку, инструмент не зарегистрирован в `server.ts`. Сейчас `quality_precheck` (см. `../quality-precheck/README.md`) возвращает `nextTool: "create_jira_task"` с пометкой, что этот инструмент ещё не существует.
 
-Ожидаемая роль в пайплайне (`StepName` в `state/session-store/types.ts`): следует за `read_changes`, предшествует `create_branch`. Будет опираться на ещё не реализованный `src/clients/jira-client.ts` для вызова Jira REST API и на содержимое `changes.json` (структурированный diff) для формирования описания задачи.
+Ожидаемая роль в пайплайне (`StepName` в `state/session-store/types.ts`): следует за `quality_precheck`, предшествует `create_branch`. Будет опираться на ещё не реализованный `src/clients/jira-client.ts` для вызова Jira REST API и на содержимое `changes.json` (структурированный diff) для формирования описания задачи.

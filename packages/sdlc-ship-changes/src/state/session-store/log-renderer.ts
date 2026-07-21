@@ -1,4 +1,4 @@
-import type { SessionRecord } from "./types.js";
+import type { SessionRecord } from './types.js'
 
 /**
  * Рендерит `SessionRecord` в человекочитаемый `log.md`. Это проекция,
@@ -8,18 +8,18 @@ import type { SessionRecord } from "./types.js";
 export function renderLog(record: SessionRecord): string {
   const lines = [
     `# Session ${record.sessionId}`,
-    "",
+    '',
     `- Status: ${record.status}`,
-    `- Current step: ${record.currentStep ?? "(none)"}`,
+    `- Current step: ${record.currentStep ?? '(none)'}`,
     ...(record.hint ? [`- Hint: ${record.hint}`] : []),
-    "",
-    "## Events",
-    "",
+    '',
+    '## Events',
+    '',
     ...record.events.map(
       (event) =>
         `- ${new Date(event.timestamp).toISOString()} — ${event.event}` +
-        (event.detail ? ` (${JSON.stringify(event.detail)})` : ""),
+        (event.detail ? ` (${JSON.stringify(event.detail)})` : ''),
     ),
-  ];
-  return `${lines.join("\n")}\n`;
+  ]
+  return `${lines.join('\n')}\n`
 }

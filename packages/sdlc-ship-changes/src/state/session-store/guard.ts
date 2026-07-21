@@ -1,7 +1,7 @@
-import { execSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { SESSIONS_ROOT, SESSIONS_ROOT_RELATIVE } from "./paths.js";
-import type { GuardResult } from "./types.js";
+import { execSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { SESSIONS_ROOT, SESSIONS_ROOT_RELATIVE } from './paths.js'
+import type { GuardResult } from './types.js'
 
 /**
  * Проверяет через реальный git (`git check-ignore`), игнорируется ли путь —
@@ -12,10 +12,10 @@ import type { GuardResult } from "./types.js";
  */
 function isPathGitIgnored(relativePath: string): boolean {
   try {
-    execSync(`git check-ignore -q ${relativePath}`, { cwd: process.cwd(), stdio: "ignore" });
-    return true;
+    execSync(`git check-ignore -q ${relativePath}`, { cwd: process.cwd(), stdio: 'ignore' })
+    return true
   } catch {
-    return false;
+    return false
   }
 }
 
@@ -30,13 +30,13 @@ function isPathGitIgnored(relativePath: string): boolean {
  * (через Bash/Edit), а не тихо внутри вызова MCP-инструмента.
  */
 export function checkSessionsGuard(): GuardResult {
-  const dirExists = existsSync(SESSIONS_ROOT);
-  const gitignored = isPathGitIgnored(SESSIONS_ROOT_RELATIVE);
-  if (dirExists && gitignored) return { ok: true };
+  const dirExists = existsSync(SESSIONS_ROOT)
+  const gitignored = isPathGitIgnored(SESSIONS_ROOT_RELATIVE)
+  if (dirExists && gitignored) return { ok: true }
   return {
     ok: false,
     reason:
-      "./tmp/sdlc-sessions/ must exist and be listed in .gitignore before a session can start. " +
-      "Create it (e.g. `mkdir -p tmp/sdlc-sessions`) and add `tmp/sdlc-sessions/` to .gitignore, then retry.",
-  };
+      './tmp/sdlc-sessions/ must exist and be listed in .gitignore before a session can start. ' +
+      'Create it (e.g. `mkdir -p tmp/sdlc-sessions`) and add `tmp/sdlc-sessions/` to .gitignore, then retry.',
+  }
 }

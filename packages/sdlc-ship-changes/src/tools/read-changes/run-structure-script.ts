@@ -1,8 +1,8 @@
-import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
-import type { ReadChangesInput } from "./input-schema.js";
+import { execFileSync } from 'node:child_process'
+import { existsSync } from 'node:fs'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import type { ReadChangesInput } from './input-schema.js'
 
 /**
  * Путь к внешнему скрипту-структуризатору (`scripts/structure-changes.mjs`).
@@ -18,14 +18,14 @@ import type { ReadChangesInput } from "./input-schema.js";
  */
 const STRUCTURE_SCRIPT_PATH = resolve(
   dirname(fileURLToPath(import.meta.url)),
-  "../../../scripts/structure-changes.mjs",
-);
+  '../../../scripts/structure-changes.mjs',
+)
 
 export interface StructureScriptSuccess {
-  ok: true;
-  mode: "create" | "append";
-  path: string;
-  summary?: Record<string, unknown>;
+  ok: true
+  mode: 'create' | 'append'
+  path: string
+  summary?: Record<string, unknown>
 }
 
 /**
@@ -46,10 +46,10 @@ export function runStructureScript(
   changesJsonPath: string,
   input: ReadChangesInput,
 ): StructureScriptSuccess {
-  const args = [STRUCTURE_SCRIPT_PATH, String(sessionTimestamp)];
+  const args = [STRUCTURE_SCRIPT_PATH, String(sessionTimestamp)]
   if (existsSync(changesJsonPath)) {
-    args.push("--append", `--agent=${input.agent ?? "unknown"}`, `--reason=${input.reason ?? ""}`);
+    args.push('--append', `--agent=${input.agent ?? 'unknown'}`, `--reason=${input.reason ?? ''}`)
   }
-  const stdout = execFileSync("node", args, { encoding: "utf8" });
-  return JSON.parse(stdout) as StructureScriptSuccess;
+  const stdout = execFileSync('node', args, { encoding: 'utf8' })
+  return JSON.parse(stdout) as StructureScriptSuccess
 }

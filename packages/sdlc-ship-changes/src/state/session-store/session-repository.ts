@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
-import path from "node:path";
-import { SESSIONS_ROOT } from "./paths.js";
-import type { SessionRecord } from "./types.js";
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
+import path from 'node:path'
+import { SESSIONS_ROOT } from './paths.js'
+import type { SessionRecord } from './types.js'
 
 /**
  * Собирает пути ко всем `session.json` на диске — по одному на директорию сессии
@@ -9,11 +9,11 @@ import type { SessionRecord } from "./types.js";
  * не создана (например, до первого успешного прохождения guard-проверки).
  */
 function listSessionFiles(): string[] {
-  if (!existsSync(SESSIONS_ROOT)) return [];
+  if (!existsSync(SESSIONS_ROOT)) return []
   return readdirSync(SESSIONS_ROOT, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
-    .map((entry) => path.join(SESSIONS_ROOT, entry.name, "session.json"))
-    .filter((file) => existsSync(file));
+    .map((entry) => path.join(SESSIONS_ROOT, entry.name, 'session.json'))
+    .filter((file) => existsSync(file))
 }
 
 /**
@@ -22,9 +22,9 @@ function listSessionFiles(): string[] {
  */
 function readSessionFile(file: string): SessionRecord | null {
   try {
-    return JSON.parse(readFileSync(file, "utf8")) as SessionRecord;
+    return JSON.parse(readFileSync(file, 'utf8')) as SessionRecord
   } catch {
-    return null;
+    return null
   }
 }
 
@@ -35,7 +35,7 @@ function readSessionFile(file: string): SessionRecord | null {
 function readAllSessions(): SessionRecord[] {
   return listSessionFiles()
     .map(readSessionFile)
-    .filter((record): record is SessionRecord => record !== null);
+    .filter((record): record is SessionRecord => record !== null)
 }
 
 /**
@@ -49,10 +49,10 @@ function readAllSessions(): SessionRecord[] {
  * самая свежая — иначе выбор был бы недетерминированным между вызовами.
  */
 export function findActiveSession(): SessionRecord | null {
-  const active = readAllSessions().filter((record) => record.status === "active");
-  if (active.length === 0) return null;
-  active.sort((a, b) => b.timestamp - a.timestamp);
-  return active[0];
+  const active = readAllSessions().filter((record) => record.status === 'active')
+  if (active.length === 0) return null
+  active.sort((a, b) => b.timestamp - a.timestamp)
+  return active[0]
 }
 
 /**
@@ -62,5 +62,5 @@ export function findActiveSession(): SessionRecord | null {
  * на которую ссылается вызов.
  */
 export function getSessionById(sessionId: string): SessionRecord | null {
-  return readAllSessions().find((record) => record.sessionId === sessionId) ?? null;
+  return readAllSessions().find((record) => record.sessionId === sessionId) ?? null
 }

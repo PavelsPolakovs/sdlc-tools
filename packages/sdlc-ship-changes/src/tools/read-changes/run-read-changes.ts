@@ -1,5 +1,5 @@
-import { join } from "node:path";
-import { append } from "../../state/audit-log.js";
+import { join } from 'node:path'
+import { append } from '../../state/audit-log.js'
 import {
   setCurrent,
   markCompleted,
@@ -7,9 +7,9 @@ import {
   getSessionById,
   updateSession,
   sessionDirFor,
-} from "../../state/session-store/index.js";
-import { readChangesInputSchema, type ReadChangesInput } from "./input-schema.js";
-import { runStructureScript } from "./run-structure-script.js";
+} from '../../state/session-store/index.js'
+import { readChangesInputSchema, type ReadChangesInput } from './input-schema.js'
+import { runStructureScript } from './run-structure-script.js'
 
 /**
  * Первый шаг пайплайна после `start_session`. Прогоняет фазы A/B/C через
@@ -20,74 +20,77 @@ import { runStructureScript } from "./run-structure-script.js";
  * цифры сюда не попадают; полное содержимое остаётся на диске и читается
  * адресно только тогда, когда это реально понадобится.
  */
-export function runReadChanges(rawInput: unknown): { content: [{ type: "text"; text: string }] } {
-  setCurrent("read_changes");
+export function runReadChanges(rawInput: unknown): { content: [{ type: 'text'; text: string }] } {
+  setCurrent('read_changes')
 
-  let input: ReadChangesInput;
+  let input: ReadChangesInput
   try {
-    input = readChangesInputSchema.parse(rawInput);
+    input = readChangesInputSchema.parse(rawInput)
   } catch (error) {
-    clearCurrent();
-    throw error;
+    clearCurrent()
+    throw error
   }
 
-  const session = getSessionById(input.sessionId);
+  const session = getSessionById(input.sessionId)
   if (!session) {
-    clearCurrent();
-    throw new Error(`session ${input.sessionId} not found`);
+    clearCurrent()
+    throw new Error(`session ${input.sessionId} not found`)
   }
-  if (session.status !== "active") {
-    clearCurrent();
-    throw new Error(`session ${input.sessionId} is not active (status: ${session.status})`);
+  if (session.status !== 'active') {
+    clearCurrent()
+    throw new Error(`session ${input.sessionId} is not active (status: ${session.status})`)
   }
 
   try {
-    const changesJsonPath = join(sessionDirFor(session), "changes.json");
-    const result = runStructureScript(session.timestamp, changesJsonPath, input);
+    const changesJsonPath = join(sessionDirFor(session), 'changes.json')
+    const result = runStructureScript(session.timestamp, changesJsonPath, input)
 
-    append(result.mode === "append" ? "changes_appended" : "changes_structured", {
+    append(result.mode === 'append' ? 'changes_appended' : 'changes_structured', {
       summary: result.summary,
-    });
-    markCompleted("read_changes");
+    })
+    markCompleted('read_changes')
     updateSession(input.sessionId, {
-      currentStep: "read_changes",
-      event: result.mode === "append" ? "changes_appended" : "changes_structured",
+      currentStep: 'read_changes',
+      event: result.mode === 'append' ? 'changes_appended' : 'changes_structured',
       detail: result.summary,
-    });
+    })
 
     return {
       content: [
         {
-          type: "text",
+          type: 'text',
           text: JSON.stringify({
             sessionId: input.sessionId,
-            step: "read-changes",
-            status: "completed",
+            step: 'read-changes',
+            status: 'completed',
             changesPath: result.path,
-            nextTool: null,
-            note: "create_jira_task is not implemented yet; read_changes is currently the last available pipeline tool.",
+            nextTool: 'quality_precheck',
+            note: 'Call quality_precheck next to run lint/prettier/typescript checks before create_jira_task.',
           }),
         },
       ],
-    };
+    }
   } catch (error) {
-    const stderr = error && typeof error === "object" && "stderr" in error ? String((error as { stderr?: unknown }).stderr ?? "") : "";
-    const message = stderr || (error instanceof Error ? error.message : String(error));
+    const stderr =
+      error && typeof error === 'object' && 'stderr' in error
+        ? String((error as { stderr?: unknown }).stderr ?? '')
+        : ''
+    const message = stderr || (error instanceof Error ? error.message : String(error))
 
-    if (message.includes("no-changes")) {
+    if (message.includes('no-changes')) {
       updateSession(input.sessionId, {
-        status: "blocked",
-        event: "read_changes_blocked",
+        status: 'blocked',
+        event: 'read_changes_blocked',
         detail: { reason: message.trim() },
-      });
-      return { content: [{ type: "text", text: `blocked: ${message.trim()}` }] };
+      })
+      return { content: [{ type: 'text', text: `blocked: ${message.trim()}` }] }
     }
 
     updateSession(input.sessionId, {
-      status: "errored",
-      event: "read_changes_errored",
+      status: 'errored',
+      event: 'read_changes_errored',
       detail: { message: message.trim() },
-    });
-    throw error instanceof Error ? error : new Error(message);
+    })
+    throw error instanceof Error ? error : new Error(message)
   }
 }

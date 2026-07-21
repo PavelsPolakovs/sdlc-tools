@@ -7,20 +7,20 @@
 // писать произвольные audit-события напрямую, поскольку лог — это факт-о-записи
 // того, что реально произошло, независимо от того, что утверждает модель.
 
-import { appendFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
-import { SESSIONS_ROOT } from "./session-store/index.js";
+import { appendFileSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
+import { SESSIONS_ROOT } from './session-store/index.js'
 
-const AUDIT_LOG_PATH = join(SESSIONS_ROOT, "audit.jsonl");
+const AUDIT_LOG_PATH = join(SESSIONS_ROOT, 'audit.jsonl')
 
 /** Одно audit-событие: что произошло, когда и с какими подробностями. */
 export interface AuditEvent {
-  timestamp: string;
-  event: string;
-  detail?: Record<string, unknown>;
+  timestamp: string
+  event: string
+  detail?: Record<string, unknown>
 }
 
-const events: AuditEvent[] = [];
+const events: AuditEvent[] = []
 
 /**
  * Добавляет audit-событие в лог с текущей меткой времени.
@@ -32,14 +32,14 @@ export function append(event: string, detail?: Record<string, unknown>): void {
     timestamp: new Date().toISOString(),
     event,
     detail,
-  };
-  events.push(record);
+  }
+  events.push(record)
 
-  mkdirSync(SESSIONS_ROOT, { recursive: true });
-  appendFileSync(AUDIT_LOG_PATH, JSON.stringify(record) + "\n", "utf8");
+  mkdirSync(SESSIONS_ROOT, { recursive: true })
+  appendFileSync(AUDIT_LOG_PATH, JSON.stringify(record) + '\n', 'utf8')
 }
 
 /** Возвращает все записанные audit-события — для чтения/отладки. */
 export function all(): AuditEvent[] {
-  return events;
+  return events
 }

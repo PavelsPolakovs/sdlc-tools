@@ -5,19 +5,19 @@
 // чьи precondition'ы (предыдущие завершённые шаги) не выполнены — вместо того
 // чтобы полагаться на то, что модель вызывает инструменты по порядку.
 
-import type { InMemorySessionState, StepName } from "./types.js";
+import type { InMemorySessionState, StepName } from './types.js'
 
 const state: InMemorySessionState = {
   currentStep: null,
   completedSteps: [],
-};
+}
 
 /**
  * Возвращает текущее in-memory состояние отслеживания шагов.
  * Нужна для отладки/инспекции — сама по себе не участвует в fail-closed логике.
  */
 export function getState(): InMemorySessionState {
-  return state;
+  return state
 }
 
 /**
@@ -26,7 +26,7 @@ export function getState(): InMemorySessionState {
  * на каком шаге пайплайн застрял.
  */
 export function setCurrent(step: StepName): void {
-  state.currentStep = step;
+  state.currentStep = step
 }
 
 /**
@@ -34,7 +34,7 @@ export function setCurrent(step: StepName): void {
  * чтобы пайплайн не оставался "застрявшим" на невалидном промежуточном состоянии.
  */
 export function clearCurrent(): void {
-  state.currentStep = null;
+  state.currentStep = null
 }
 
 /**
@@ -44,6 +44,6 @@ export function clearCurrent(): void {
  */
 export function markCompleted(step: StepName): void {
   if (!state.completedSteps.includes(step)) {
-    state.completedSteps.push(step);
+    state.completedSteps.push(step)
   }
 }

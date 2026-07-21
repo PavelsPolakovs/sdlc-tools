@@ -4,16 +4,21 @@
  * последовательность, так как Jira-переходы могут случаться в нескольких точках).
  * Используется и legacy in-memory API (`in-memory-state.ts`), и дисковыми сессиями
  * (`SessionRecord.currentStep`), чтобы отмечать, на каком шаге сейчас находится процесс.
+ *
+ * `quality_precheck` при неуспехе не заводит отдельный шаг пайплайна для исправления
+ * находок — это внешний агент/skill проекта, который вызывается по инструкции в ответе
+ * `quality_precheck`, а сам шаг после исправления вызывается повторно.
  */
 export type StepName =
-  | "start_session"
-  | "read_changes"
-  | "create_jira_task"
-  | "create_branch"
-  | "commit"
-  | "open_mr"
-  | "poll_ci"
-  | "report";
+  | 'start_session'
+  | 'read_changes'
+  | 'quality_precheck'
+  | 'create_jira_task'
+  | 'create_branch'
+  | 'commit'
+  | 'open_mr'
+  | 'poll_ci'
+  | 'report'
 
 /**
  * Состояние легаси in-memory API отслеживания шагов (см. `in-memory-state.ts`).
@@ -21,8 +26,8 @@ export type StepName =
  * на дисковые сессии и не принимает `sessionId`.
  */
 export interface InMemorySessionState {
-  currentStep: StepName | null;
-  completedSteps: StepName[];
+  currentStep: StepName | null
+  completedSteps: StepName[]
 }
 
 /**
@@ -33,7 +38,7 @@ export interface InMemorySessionState {
  * - `completed` — пайплайн дошёл до конца штатно (терминально);
  * - `abandoned` / `errored` — сессия явно брошена (терминально).
  */
-export type SessionStatus = "active" | "blocked" | "completed" | "abandoned" | "errored";
+export type SessionStatus = 'active' | 'blocked' | 'completed' | 'abandoned' | 'errored'
 
 /**
  * Единичная запись в append-only журнале сессии (`SessionRecord.events`).
@@ -41,9 +46,9 @@ export type SessionStatus = "active" | "blocked" | "completed" | "abandoned" | "
  * реально произошло, а не в момент, когда модель лишь утверждает, что оно произошло.
  */
 export interface SessionEvent {
-  timestamp: number;
-  event: string;
-  detail?: Record<string, unknown>;
+  timestamp: number
+  event: string
+  detail?: Record<string, unknown>
 }
 
 /**
@@ -53,12 +58,12 @@ export interface SessionEvent {
  * сервер считает текущим положением дел.
  */
 export interface SessionRecord {
-  sessionId: string;
-  timestamp: number;
-  currentStep: StepName | null;
-  status: SessionStatus;
-  hint?: string;
-  events: SessionEvent[];
+  sessionId: string
+  timestamp: number
+  currentStep: StepName | null
+  status: SessionStatus
+  hint?: string
+  events: SessionEvent[]
 }
 
 /**
@@ -67,6 +72,6 @@ export interface SessionRecord {
  * нужно исправить, прежде чем повторить попытку.
  */
 export interface GuardResult {
-  ok: boolean;
-  reason?: string;
+  ok: boolean
+  reason?: string
 }

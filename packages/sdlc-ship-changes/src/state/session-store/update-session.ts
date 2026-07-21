@@ -1,16 +1,16 @@
-import { getSessionById } from "./session-repository.js";
-import { persistSession } from "./persist-session.js";
-import type { SessionRecord, SessionStatus, StepName } from "./types.js";
+import { getSessionById } from './session-repository.js'
+import { persistSession } from './persist-session.js'
+import type { SessionRecord, SessionStatus, StepName } from './types.js'
 
 /**
  * Описание перехода существующей сессии: какие поля обновить и какое событие
  * зафиксировать в append-only журнале `SessionRecord.events`.
  */
 export interface SessionTransition {
-  status?: SessionStatus;
-  currentStep?: StepName | null;
-  event: string;
-  detail?: Record<string, unknown>;
+  status?: SessionStatus
+  currentStep?: StepName | null
+  event: string
+  detail?: Record<string, unknown>
 }
 
 /**
@@ -23,21 +23,21 @@ export interface SessionTransition {
  * уже после того как соответствующая работа шага фактически выполнена.
  */
 export function updateSession(sessionId: string, transition: SessionTransition): SessionRecord {
-  const record = getSessionById(sessionId);
+  const record = getSessionById(sessionId)
   if (!record) {
-    throw new Error(`session ${sessionId} not found`);
+    throw new Error(`session ${sessionId} not found`)
   }
   if (transition.status) {
-    record.status = transition.status;
+    record.status = transition.status
   }
   if (transition.currentStep !== undefined) {
-    record.currentStep = transition.currentStep;
+    record.currentStep = transition.currentStep
   }
   record.events.push({
     timestamp: Date.now(),
     event: transition.event,
     detail: transition.detail,
-  });
-  persistSession(record);
-  return record;
+  })
+  persistSession(record)
+  return record
 }
