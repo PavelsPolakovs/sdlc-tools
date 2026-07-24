@@ -1,4 +1,4 @@
-.PHONY: build format lint typecheck
+.PHONY: build format lint typecheck inspect
 
 build:
 	cd packages/sdlc-ship-changes && npm run build
@@ -11,3 +11,6 @@ lint:
 
 typecheck:
 	npm run typecheck
+
+inspect:
+	cd packages/sdlc-ship-changes && npm run inspect

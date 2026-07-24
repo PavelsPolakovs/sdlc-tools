@@ -22,7 +22,9 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts"
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "inspect": "mcp-inspector tsx src/server.ts",
+    "inspect:build": "mcp-inspector node dist/server.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
@@ -30,6 +32,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.5",
+    "@modelcontextprotocol/inspector": "^1.0.0",
     "@types/node": "^20.0.0",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
